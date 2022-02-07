@@ -1,0 +1,7 @@
+[submodule "sdk"]
+	path = sdk
+	url = https://github.com/geode-sdk/sdk
+[submodule "imgui/imgui"]
+	path = imgui/imgui
+	url = https://github.com/ocornut/imgui
+	branch = docking
