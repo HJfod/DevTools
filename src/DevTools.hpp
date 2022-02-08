@@ -36,7 +36,6 @@ class DevTools {
 
         void executeConsoleCommand(std::string const&);
         
-        void initFonts();
         void loadStyle();
         void reloadStyle();
         void loadTheme(DevToolsTheme theme);
@@ -54,11 +53,6 @@ class DevTools {
         void addressData(uintptr_t address);
         void selectNode(CCNode* node);
 
-        void draw();
-        
-        friend void CCEGLView_swapBuffers(CCEGLView*);
-        friend void CCDirector_drawScene(CCDirector*);
-
         DevTools();
         ~DevTools();
 
@@ -68,6 +62,8 @@ class DevTools {
         void fixSceneScale(CCScene* scene);
         void willSwitchToScene(CCScene* scene);
 
+        void draw();
+        void initFonts();
         bool isVisible() const;
         bool shouldPopGame() const;
         void show();

@@ -21,7 +21,7 @@ bool operator!=(ImVec2 const& v1, ImVec2 const& v2) {
 }
 
 class $modify(CCEGLView) {
-    void swapBuffers() {
+    virtual void swapBuffers() {
         static bool g_init = [this]() -> bool {
             IMGUI_CHECKVERSION();
             ImGui::CreateContext();
@@ -29,7 +29,7 @@ class $modify(CCEGLView) {
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
             io.ConfigDockingWithShift = true;
             // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-            // DevTools::get()->initFonts();
+            DevTools::get()->initFonts();
             auto hwnd = WindowFromDC(*as<HDC*>(as<uintptr_t>(this->getWindow()) + 0x244));
             ImGui_ImplWin32_Init(hwnd);
             ImGui_ImplOpenGL3_Init();
@@ -42,7 +42,7 @@ class $modify(CCEGLView) {
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
 
-            // DevTools::get()->draw();
+            DevTools::get()->draw();
 
             ImGui::EndFrame();
             ImGui::Render();
@@ -107,6 +107,7 @@ class $modify(CCEGLView) {
                 }
             }
 
+            auto msgToGD = msg;
             if (g_shouldPassEventsToGDButTransformed && msg.message == WM_MOUSEMOVE) {
                 auto win = ImGui::GetMainViewport()->Size;
                 auto mpos = ImVec2(
@@ -115,7 +116,7 @@ class $modify(CCEGLView) {
                 );
                 auto x = (mpos.x / g_GDWindowRect.z) * win.x;
                 auto y = (mpos.y / g_GDWindowRect.w) * win.y;
-                msg.lParam = MAKELPARAM(x, y);
+                msgToGD.lParam = MAKELPARAM(x, y);
             }
 
             if (io.WantCaptureKeyboard) {
@@ -136,9 +137,8 @@ class $modify(CCEGLView) {
             }
 
             if (!blockInput) {
-                DispatchMessage(&msg);
+                DispatchMessage(&msgToGD);
             }
-
             ImGui_ImplWin32_WndProcHandler(msg.hwnd, msg.message, msg.wParam, msg.lParam);
         }
 
@@ -147,135 +147,135 @@ class $modify(CCEGLView) {
 };
 
 class $modify(CCDirector) {
-    // void drawScene() {
-    //     static GLuint s_buffer  = 0;
-    //     static GLuint s_texture = 0;
-    //     static GLuint s_depth   = 0;
-    //     static auto s_free = +[]() -> void {
-    //         if (s_depth) {
-    //             glDeleteRenderbuffers(1, &s_depth);
-    //             s_depth = 0;
-    //         }
-    //         if (s_texture) {
-    //             glDeleteTextures(1, &s_texture);
-    //             s_texture = 0;
-    //         }
-    //         if (s_buffer) {
-    //             glDeleteFramebuffers(1, &s_buffer);
-    //             s_buffer = 0;
-    //         }
-    //     };
+    void drawScene() {
+        static GLuint s_buffer  = 0;
+        static GLuint s_texture = 0;
+        static GLuint s_depth   = 0;
+        static auto s_free = +[]() -> void {
+            if (s_depth) {
+                glDeleteRenderbuffers(1, &s_depth);
+                s_depth = 0;
+            }
+            if (s_texture) {
+                glDeleteTextures(1, &s_texture);
+                s_texture = 0;
+            }
+            if (s_buffer) {
+                glDeleteFramebuffers(1, &s_buffer);
+                s_buffer = 0;
+            }
+        };
 
-    //     // if (!DevTools::get()->shouldPopGame()) {
-    //         // s_free();
-    //         // g_renderInSwapBuffers = true;
-    //         // g_shouldPassEventsToGDButTransformed = false;
-    //         // return $CCDirector::drawScene();
-    //     // }
-    //     g_renderInSwapBuffers = false;
+        if (!DevTools::get()->shouldPopGame()) {
+            s_free();
+            g_renderInSwapBuffers = true;
+            g_shouldPassEventsToGDButTransformed = false;
+            return $CCDirector::drawScene();
+        }
+        g_renderInSwapBuffers = false;
 
-    //     if (g_updateBuffer) {
-    //         s_free();
-    //         g_updateBuffer = false;
-    //     }
+        if (g_updateBuffer) {
+            s_free();
+            g_updateBuffer = false;
+        }
 
-    //     auto winSize = this->getOpenGLView()->getViewPortRect();
+        auto winSize = this->getOpenGLView()->getViewPortRect();
 
-    //     if (!s_buffer) {
-    //         glGenFramebuffers(1, &s_buffer);
-    //         glBindFramebuffer(GL_FRAMEBUFFER, s_buffer);
-    //     }
+        if (!s_buffer) {
+            glGenFramebuffers(1, &s_buffer);
+            glBindFramebuffer(GL_FRAMEBUFFER, s_buffer);
+        }
 
-    //     if (!s_texture) {
-    //         glGenTextures(1, &s_texture);
-    //         glBindTexture(GL_TEXTURE_2D, s_texture);
+        if (!s_texture) {
+            glGenTextures(1, &s_texture);
+            glBindTexture(GL_TEXTURE_2D, s_texture);
 
-    //         glTexImage2D(
-    //             GL_TEXTURE_2D, 0,GL_RGB,
-    //             static_cast<GLsizei>(winSize.size.width),
-    //             static_cast<GLsizei>(winSize.size.height),
-    //             0,GL_RGB, GL_UNSIGNED_BYTE, 0
-    //         );
+            glTexImage2D(
+                GL_TEXTURE_2D, 0,GL_RGB,
+                static_cast<GLsizei>(winSize.size.width),
+                static_cast<GLsizei>(winSize.size.height),
+                0,GL_RGB, GL_UNSIGNED_BYTE, 0
+            );
 
-    //         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    //         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //     }
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        }
 
-    //     if (!s_depth) {
-    //         glGenRenderbuffers(1, &s_depth);
-    //         glBindRenderbuffer(GL_RENDERBUFFER, s_depth);
-    //         glRenderbufferStorage(
-    //             GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
-    //             static_cast<GLsizei>(winSize.size.width),
-    //             static_cast<GLsizei>(winSize.size.height)
-    //         );
-    //         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_depth);
+        if (!s_depth) {
+            glGenRenderbuffers(1, &s_depth);
+            glBindRenderbuffer(GL_RENDERBUFFER, s_depth);
+            glRenderbufferStorage(
+                GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                static_cast<GLsizei>(winSize.size.width),
+                static_cast<GLsizei>(winSize.size.height)
+            );
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s_depth);
 
-    //         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, s_texture, 0);
-    //     }
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, s_texture, 0);
+        }
 
-    //     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-    //         Interface::mod()->logInfo("Unable to Render to Framebuffer", Severity::Error);
-    //         s_free();
-    //         $CCDirector::drawScene();
-    //         return;
-    //     }
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            Interface::mod()->logInfo("Unable to Render to Framebuffer", Severity::Error);
+            s_free();
+            $CCDirector::drawScene();
+            return;
+        }
 
-    //     glBindFramebuffer(GL_FRAMEBUFFER, s_buffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, s_buffer);
 
-    //     $CCDirector::drawScene();
+        $CCDirector::drawScene();
 
-    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //     ImGui_ImplOpenGL3_NewFrame();
-    //     ImGui_ImplWin32_NewFrame();
-    //     ImGui::NewFrame();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
 
-    //     glClear(0x4100);
+        glClear(0x4100);
 
-    //     // DevTools::get()->draw();
+        DevTools::get()->draw();
 
-    //     // if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-    //     //     auto backup_current_context = this->getOpenGLView()->getWindow();
-    //     //     ImGui::UpdatePlatformWindows();
-    //     //     ImGui::RenderPlatformWindowsDefault();
-    //     //     glfwMakeContextCurrent(backup_current_context);
-    //     // }
+        // if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        //     auto backup_current_context = this->getOpenGLView()->getWindow();
+        //     ImGui::UpdatePlatformWindows();
+        //     ImGui::RenderPlatformWindowsDefault();
+        //     glfwMakeContextCurrent(backup_current_context);
+        // }
         
-    //     glFlush();
+        glFlush();
 
-    //     if (ImGui::Begin("Geometry Dash")) {
-    //         auto ratio = winSize.size.width / winSize.size.height;
-    //         ImVec2 imgSize = {
-    //             (ImGui::GetWindowHeight() - 35) * ratio,
-    //             (ImGui::GetWindowHeight() - 35)
-    //         };
-    //         if (ImGui::GetWindowWidth() - 20 < imgSize.x) {
-    //             imgSize = {
-    //                 (ImGui::GetWindowWidth() - 20),
-    //                 (ImGui::GetWindowWidth() - 20) / ratio
-    //             };
-    //         }
-    //         auto pos = (ImGui::GetWindowSize() - imgSize) * .5f;
-    //         pos.y += 10.f;
-    //         ImGui::SetCursorPos(pos);
-    //         ImGui::Image(as<ImTextureID>(s_texture),
-    //             imgSize, { 0, 1 }, { 1, 0 }
-    //         );
-    //         g_GDWindowRect = {
-    //             ImGui::GetWindowPos().x + pos.x,
-    //             ImGui::GetWindowPos().y + pos.y,
-    //             imgSize.x, imgSize.y
-    //         };
-    //         g_shouldPassEventsToGDButTransformed = ImGui::IsItemHovered();
-    //     }
-    //     ImGui::End();
+        if (ImGui::Begin("Geometry Dash")) {
+            auto ratio = winSize.size.width / winSize.size.height;
+            ImVec2 imgSize = {
+                (ImGui::GetWindowHeight() - 35) * ratio,
+                (ImGui::GetWindowHeight() - 35)
+            };
+            if (ImGui::GetWindowWidth() - 20 < imgSize.x) {
+                imgSize = {
+                    (ImGui::GetWindowWidth() - 20),
+                    (ImGui::GetWindowWidth() - 20) / ratio
+                };
+            }
+            auto pos = (ImGui::GetWindowSize() - imgSize) * .5f;
+            pos.y += 10.f;
+            ImGui::SetCursorPos(pos);
+            ImGui::Image(as<ImTextureID>(s_texture),
+                imgSize, { 0, 1 }, { 1, 0 }
+            );
+            g_GDWindowRect = {
+                ImGui::GetWindowPos().x + pos.x,
+                ImGui::GetWindowPos().y + pos.y,
+                imgSize.x, imgSize.y
+            };
+            g_shouldPassEventsToGDButTransformed = ImGui::IsItemHovered();
+        }
+        ImGui::End();
 
-    //     ImGui::EndFrame();
-    //     ImGui::Render();
+        ImGui::EndFrame();
+        ImGui::Render();
 
-    //     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 };
