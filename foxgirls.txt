@@ -1,4 +1,6 @@
 ${workspaceFolder}
+${workspaceFolder}/api/include
+${workspaceFolder}/imgui
 ${workspaceFolder}/imgui/imgui
 ${workspaceFolder}/build
 ${workspaceFolder}/sdk/include/cocos/cocos2dx

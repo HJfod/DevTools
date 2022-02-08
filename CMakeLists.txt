@@ -15,7 +15,11 @@ set(SOURCE_FILES
 	${CORE_SOURCES}
 )
 set(LINK_DIRECTORIES)
-set(LINK_LIBRARIES imgui-hook ${CMAKE_SOURCE_DIR}/GL/glew32.lib)
+set(LINK_LIBRARIES
+    imgui-hook
+    ${CMAKE_SOURCE_DIR}/GL/glew32.lib
+    ${CMAKE_SOURCE_DIR}/sdk/bin/windows/GeodeAPI.lib
+)
 
 include(sdk/Geode.cmake)
 set_target_properties(DevTools PROPERTIES PREFIX "" OUTPUT_NAME "DevTools")
@@ -23,4 +27,5 @@ set_target_properties(DevTools PROPERTIES PREFIX "" OUTPUT_NAME "DevTools")
 target_include_directories(DevTools PUBLIC 
     imgui
     imgui/imgui
+    api/include
 )

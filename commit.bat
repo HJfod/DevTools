@@ -4,7 +4,10 @@ if "%1"=="pull" (
 
     git pull origin main
 
-    cd sdk
+    cd api
+    git pull origin main
+
+    cd ../sdk
     git pull origin main
 
     cd bin
