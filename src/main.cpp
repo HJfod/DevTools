@@ -7,7 +7,6 @@ USE_GEODE_NAMESPACE();
 GEODE_API bool GEODE_CALL geode_load(Mod* mod) {
 	Interface::get()->init(mod);
     
-    #ifdef GEODE_IS_WINDOWS
     mod->with<GeodeAPI>()->addKeybindAction(TriggerableAction {
         "Open Dev Tools",
         "dev_tools.open",
@@ -19,7 +18,6 @@ GEODE_API bool GEODE_CALL geode_load(Mod* mod) {
             return false;
         }
     }, {{ KEY_I, Keybind::Modifiers::Control | Keybind::Modifiers::Shift }});
-    #endif
 
     return true;
 }
