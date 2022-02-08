@@ -5,7 +5,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 static bool g_bRenderInSwapBuffers = false;
 static bool g_bShouldPassEventsToGDButTransformed = false;
 static bool g_bUpdateBuffer = false;
-static ImVec4 g_obGDWindowRect;
+static ImVec4 g_ogeodeWindowRect;
 
 ImVec2 operator-(ImVec2 const& v1, ImVec2 const& v2) {
     return { v1.x - v2.x, v1.y - v2.y };
@@ -109,11 +109,11 @@ class $modify(CCEGLView) {
             if (g_bShouldPassEventsToGDButTransformed && msg.message == WM_MOUSEMOVE) {
                 auto win = ImGui::GetMainViewport()->Size;
                 auto mpos = ImVec2(
-                    GET_X_LPARAM(msg.lParam) - g_obGDWindowRect.x,
-                    GET_Y_LPARAM(msg.lParam) - g_obGDWindowRect.y
+                    GET_X_LPARAM(msg.lParam) - g_ogeodeWindowRect.x,
+                    GET_Y_LPARAM(msg.lParam) - g_ogeodeWindowRect.y
                 );
-                auto x = (mpos.x / g_obGDWindowRect.z) * win.x;
-                auto y = (mpos.y / g_obGDWindowRect.w) * win.y;
+                auto x = (mpos.x / g_ogeodeWindowRect.z) * win.x;
+                auto y = (mpos.y / g_ogeodeWindowRect.w) * win.y;
                 msg.lParam = MAKELPARAM(x, y);
             }
 
@@ -261,7 +261,7 @@ class $modify(CCDirector) {
             ImGui::Image(as<ImTextureID>(s_texture),
                 imgSize, { 0, 1 }, { 1, 0 }
             );
-            g_obGDWindowRect = {
+            g_ogeodeWindowRect = {
                 ImGui::GetWindowPos().x + pos.x,
                 ImGui::GetWindowPos().y + pos.y,
                 imgSize.x, imgSize.y
