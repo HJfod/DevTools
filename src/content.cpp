@@ -176,10 +176,13 @@ void DevTools::logMessage(LogMessage* log) {
             for (auto const& msg : msgs) {
                 ImGui::SameLine();
                 CHECK_IS(msg, as_str, LogString) {
+                    ImGuiWindow* window = ImGui::GetCurrentWindow();
+                    ImGui::PushTextWrapPos(ImGui::GetWindowWidth() - 20.f);
                     ImGui::TextWrapped(as_str->toString().c_str());
+                    ImGui::PopTextWrapPos();
                 }
-                CHECK_IS(msg, as_Mod, LogMod) {
-                    this->generateModInfo(as_Mod->getMod());
+                CHECK_IS(msg, as_mod, LogMod) {
+                    this->generateModInfo(as_mod->getMod());
                 }
                 CHECK_IS(msg, as_ccobj, LogCCObject) {
                     auto node = dynamic_cast<CCNode*>(as_ccobj->getObject());
@@ -354,20 +357,13 @@ void DevTools::generateTab<"Class Data"_h>() {
         auto addr = as<uintptr_t>(this->m_selectedNode) + i;
         if (rtti.valid(addr)) {
             auto data = *as<uintptr_t*>(addr);
-            if (rtti.valid(data)) {
-                ImGui::Text(
-                    "+ %d : %x -> %x",
-                    i, data, *as<uintptr_t*>(data)
-                );
-            } else {
-                ImGui::Text(
-                    "+ %d : %x, %.6f",
-                    i, data, union_cast<float>(data)
-                );
-            }
+            ImGui::Text(
+                "+ %x : %x, %.6f",
+                i, data, union_cast<float>(data)
+            );
         } else {
             ImGui::Text(
-                "+ %d : " FEATHER_ALERT_OCTAGON " <Unreadable Address>", i
+                "+ %x : " FEATHER_ALERT_OCTAGON " <Unreadable Address>", i
             );
         }
     }
