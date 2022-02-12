@@ -1,5 +1,5 @@
 #include <Geode.hpp>
-#include <GeodeAPI>
+#include <GeodeAPI.hpp>
 #include "DevTools.hpp"
 
 USE_GEODE_NAMESPACE();
