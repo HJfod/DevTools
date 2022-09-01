@@ -11,13 +11,8 @@ file(GLOB_RECURSE SOURCES
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 
-find_path(GEODE_SDK_PATH
-	NAMES Geode.cmake
-	PATHS $ENV{GEODE_SUITE}/sdk /Users/Shared/Geode/suite/sdk /usr/local/geode/sdk
-	DOC "Geode SDK path."
-	REQUIRED
-)
-include(${GEODE_SDK_PATH}/Geode.cmake)
+# This must be precompiled or cocos2d's glew.h takes over
+target_precompile_headers(${PROJECT_NAME} PUBLIC GLEW/glew.h)
 
 # imgui
 
@@ -40,7 +35,7 @@ target_link_libraries(
 
 target_link_libraries(${PROJECT_NAME} 
 	imgui
-	${CMAKE_SOURCE_DIR}/GL/glew32.lib
+	${CMAKE_SOURCE_DIR}/GLEW/glew32.lib
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
@@ -48,5 +43,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     api/include
 )
 
-setup_geode_mod()
+if (NOT DEFINED ENV{GEODE_SDK})
+    message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
+else()
+    message(STATUS "Found Geode: $ENV{GEODE_SDK}")
+endif()
 
+set(GEODE_LINK_NIGHTLY On)
+add_subdirectory($ENV{GEODE_SDK} $ENV{GEODE_SDK}/build)
+
+target_link_libraries(${PROJECT_NAME} geode-sdk)
+create_geode_file(${PROJECT_NAME})

@@ -1,11 +1,10 @@
 {
-    "geode":        "v0.1.0",
+    "geode":        "v0.2.0",
 	"version":      "v0.0.1",
 	"id":           "com.hjfod.devtools",
     "name":         "DevTools",
     "developer":    "HJfod",
     "description":  "Advanced Developer Tools",
-    "details":      "Browser-like advanced developer tools for Geode",
     "repository":   "https://github.com/hjfod/geode-devtools",
     "binary":       "DevTools"
 }

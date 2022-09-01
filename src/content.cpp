@@ -4,7 +4,7 @@
 #include <imgui_internal.h>
 #include "fonts/FeatherIcons.hpp"
 #include "RTTI/gdrtti.hpp"
-#include <WackyGeodeMacros.hpp>
+#include <Geode/utils/WackyGeodeMacros.hpp>
 
 const char* getNodeName(CCObject* node) {
     return typeid(*node).name() + 6;

@@ -1,4 +1,4 @@
-#include "../GL/glew.h"
+#include "../GLEW/glew.h"
 #include "DevTools.hpp"
 #include <windowsx.h>
 
@@ -57,7 +57,7 @@ class $modify(CCEGLView) {
 
     void updateWindow(int width, int height) {
         g_updateBuffer = true;
-        return CCEGLView::updateWindow(width, height);
+        CCEGLView::updateWindow(width, height);
     }
 
     void pollEvents() {

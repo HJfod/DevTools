@@ -10,24 +10,21 @@
 #include "fonts/SourceCodeProLight.hpp"
 #undef max
 
-constexpr static auto resource_dir = const_join_path<geodeDirectory, geodeResourceDirectory>;
-constexpr static auto font_default = std::string_view("OpenSans-Regular.ttf");
-
 template<typename T, typename O>
 constexpr T enum_cast(O o) {
     return static_cast<T>(reinterpret_cast<int>(o));
 }
 
 bool DevTools::isVisible() const {
-    return this->m_visible;
+    return m_visible;
 }
 
 bool DevTools::shouldPopGame() const {
-    return this->m_visible && this->m_GDInWindow;
+    return m_visible && m_GDInWindow;
 }
 
 void DevTools::draw() {
-    if (this->m_visible) {
+    if (m_visible) {
         auto& style = ImGui::GetStyle();
         style.ColorButtonPosition = ImGuiDir_Left;
 
@@ -36,11 +33,11 @@ void DevTools::draw() {
         ImGuiWindowFlags flags = 
             ImGuiWindowFlags_NoScrollbar;
         
-        this->m_dockSpaceID = ImGui::DockSpaceOverViewport(
+        m_dockSpaceID = ImGui::DockSpaceOverViewport(
             nullptr, ImGuiDockNodeFlags_PassthruCentralNode
         );
         auto& fonts = ImGui::GetIO().Fonts->Fonts;
-        ImGui::PushFont(this->m_defaultFont);
+        ImGui::PushFont(m_defaultFont);
         this->generateTabs();
         ImGui::PopFont();
         this->fixSceneScale(CCDirector::sharedDirector()->getRunningScene());
@@ -67,24 +64,24 @@ void DevTools::initFonts() {
         io.Fonts->Build();
     };
 
-    add_font(&this->m_defaultFont, Font_OpenSans,          18.f, def_ranges);
-    add_font(&this->m_smallFont,   Font_OpenSans,          10.f, def_ranges);
-    add_font(&this->m_monoFont,    Font_RobotoMono,        18.f, def_ranges);
-    add_font(&this->m_boxFont,     Font_SourceCodeProLight,23.f, box_ranges);
+    add_font(&m_defaultFont, Font_OpenSans,          18.f, def_ranges);
+    add_font(&m_smallFont,   Font_OpenSans,          10.f, def_ranges);
+    add_font(&m_monoFont,    Font_RobotoMono,        18.f, def_ranges);
+    add_font(&m_boxFont,     Font_SourceCodeProLight,23.f, box_ranges);
 }
 
 DevTools::DevTools() {
-    this->m_colorYes       = new ImVec4;
-    this->m_colorNo        = new ImVec4;
-    this->m_colorWarning   = new ImVec4;
-    // this->m_addresses      = new AddressManager;
+    m_colorYes       = new ImVec4;
+    m_colorNo        = new ImVec4;
+    m_colorWarning   = new ImVec4;
+    // m_addresses      = new AddressManager;
 }
 
 DevTools::~DevTools() {
-    delete this->m_colorYes;
-    delete this->m_colorNo;
-    delete this->m_colorWarning;
-    // delete this->m_addresses;
+    delete m_colorYes;
+    delete m_colorNo;
+    delete m_colorWarning;
+    // delete m_addresses;
 }
 
 DevTools* DevTools::get() {
@@ -94,18 +91,18 @@ DevTools* DevTools::get() {
 
 class AccessSpecifiersAreForNerds : public CCTransitionScene {
     public:
-        CCScene* getIn()  { return this->m_pInScene; }
-        CCScene* getOut() { return this->m_pOutScene; }
+        CCScene* getIn()  { return m_pInScene; }
+        CCScene* getOut() { return m_pOutScene; }
 };
 
 void DevTools::selectNode(CCNode* node) {
-    CC_SAFE_RELEASE(this->m_selectedNode);
-    this->m_selectedNode = node;
-    CC_SAFE_RETAIN(this->m_selectedNode);
+    CC_SAFE_RELEASE(m_selectedNode);
+    m_selectedNode = node;
+    CC_SAFE_RETAIN(m_selectedNode);
 }
 
 void DevTools::reloadStyle() {
-    this->m_loadedStyle = false;
+    m_loadedStyle = false;
     this->loadStyle();
 }
 
@@ -124,21 +121,21 @@ void DevTools::willSwitchToScene(CCScene* scene) {
 }
 
 void DevTools::show() {
-    if (!this->m_visible) {
+    if (!m_visible) {
         auto scene = CCDirector::sharedDirector()->getRunningScene();
-        this->m_visible = true;
+        m_visible = true;
     }
 }
 
 void DevTools::hide() {
-    if (this->m_visible) {
+    if (m_visible) {
         auto scene = CCDirector::sharedDirector()->getRunningScene();
-        this->m_visible = false;
+        m_visible = false;
     }
 }
 
 void DevTools::toggle() {
-    if (this->m_visible) {
+    if (m_visible) {
         this->hide();
     } else {
         this->show();
@@ -238,7 +235,7 @@ void DevTools::executeConsoleCommand(std::string const& cmd) {
                 if (scene) {
                     Log::get() << "Moving to scene " << args.at(1);
                     CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
-                    this->m_commandSuccess = true;
+                    m_commandSuccess = true;
                 } else {
                     Log::get() << Severity::Error <<
                         "Invalid Command: \"" << args.at(1) << "\" is not a valid SceneID";
