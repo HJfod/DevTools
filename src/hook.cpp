@@ -8,6 +8,10 @@ static bool g_shouldPassEventsToGDButTransformed = false;
 static bool g_updateBuffer = false;
 static ImVec4 g_GDWindowRect;
 
+ImVec4 getGDWindowRect() {
+    return g_GDWindowRect;
+}
+
 ImVec2 operator-(ImVec2 const& v1, ImVec2 const& v2) {
     return { v1.x - v2.x, v1.y - v2.y };
 }

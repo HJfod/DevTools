@@ -1,5 +1,7 @@
 #pragma once
 
+#include "chars.hpp"
+
 // https://tomeko.net/online_tools/file_to_hex.php?lang=en
 
 #define FEATHER_MIN_FA 0xe900

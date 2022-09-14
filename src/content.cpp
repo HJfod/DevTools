@@ -5,6 +5,7 @@
 #include "fonts/FeatherIcons.hpp"
 #include "RTTI/gdrtti.hpp"
 #include <Geode/utils/WackyGeodeMacros.hpp>
+#include <Geode/utils/operators.hpp>
 
 const char* getNodeName(CCObject* node) {
     return typeid(*node).name() + 6;
@@ -39,25 +40,80 @@ void DevTools::hoverableNodeName(CCNode* node) {
     ImGui::Text("%s", getNodeName(node));
 }
 
+void DevTools::highlightNode(CCNode* node) {
+	auto& foreground = *ImGui::GetForegroundDrawList();
+	auto parent = node->getParent();
+	auto bounding_box = node->boundingBox();
+	CCPoint bb_min(bounding_box.getMinX(), bounding_box.getMinY());
+	CCPoint bb_max(bounding_box.getMaxX(), bounding_box.getMaxY());
+
+	auto cameraParent = node;
+	while (cameraParent) {
+		auto camera = cameraParent->getCamera();
+
+		float off_x, off_y, off_z;
+		camera->getEyeXYZ(&off_x, &off_y, &off_z);
+		const CCPoint offset(off_x, off_y);
+		bb_min -= offset;
+		bb_max -= offset;
+
+		cameraParent = cameraParent->getParent();
+	}
+
+	auto min = toVec2(parent ? parent->convertToWorldSpace(bb_min) : bb_min);
+	auto max = toVec2(parent ? parent->convertToWorldSpace(bb_max) : bb_max);
+
+    auto wsize = ImGui::GetMainViewport()->Size;
+    auto rect = getGDWindowRect();
+
+    auto tmin = ImVec2(
+        min.x / wsize.x * rect.z + rect.x,
+        min.y / wsize.y * rect.w + rect.y
+    );
+    auto tmax = ImVec2(
+        max.x / wsize.x * rect.z + rect.x,
+        max.y / wsize.y * rect.w + rect.y
+    );
+
+	foreground.AddRectFilled(
+        tmin, tmax,
+        m_selectedNode == node ?
+            IM_COL32(200, 200, 255, 60) :
+            IM_COL32(255, 255, 255, 70)
+    );
+}
+
 void DevTools::recurseUpdateList(CCNode* node, unsigned int i) {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
-    if (this->m_selectedNode == node) {
+    if (m_selectedNode == node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
     if (ImGui::TreeNodeEx(
         node, flags, "(%d) %s", i, getNodeName(node)
     )) {
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
-            if (this->m_selectedNode == node) {
+            if (m_selectedNode == node) {
                 this->selectNode(nullptr);
             } else {
                 this->selectNode(node);
             }
         }
+        if (
+            m_selectedNode == node ||
+            (ImGui::IsItemHovered() && ImGui::IsKeyDown(ImGuiKey_ModShift))
+        ) {
+            this->highlightNode(node);
+        }
         CCARRAY_FOREACH_B_BASE(node->getChildren(), child, CCNode*, ix) {
             this->recurseUpdateList(dynamic_cast<CCNode*>(child), ix);
         }
         ImGui::TreePop();
+    }
+    else if (
+        m_selectedNode == node ||
+        (ImGui::IsItemHovered() && ImGui::IsKeyDown(ImGuiKey_ModShift))
+    ) {
+        this->highlightNode(node);
     }
 }
 
@@ -134,7 +190,7 @@ void DevTools::generateModInfo(Mod* mod) {
 }
 
 void DevTools::generateTree() {
-    if (this->m_oddHtmlStyleSetting) {
+    if (m_oddHtmlStyleSetting) {
         this->recurseUpdateListOdd(CCDirector::sharedDirector()->getRunningScene());
     } else {
         this->recurseUpdateList(CCDirector::sharedDirector()->getRunningScene());
@@ -145,16 +201,16 @@ void DevTools::logMessage(LogPtr* log) {
     ImU32 color = 0;
     int level = 0;
     if (log->getSeverity() == Severity::Warning) {
-        color = ImGui::ColorConvertFloat4ToU32(*this->m_colorWarning);
+        color = ImGui::ColorConvertFloat4ToU32(*m_colorWarning);
         color = (color & 0x00ffffff) + 0x27000000; // set alpha
         level = 1;
     }
     if (log->getSeverity() >= Severity::Error) {
-        color = ImGui::ColorConvertFloat4ToU32(*this->m_colorNo);
+        color = ImGui::ColorConvertFloat4ToU32(*m_colorNo);
         color = (color & 0x00ffffff) + 0x27000000; // set alpha
         level = 2;
     }
-    ImGui::PushFont(this->m_monoFont);
+    ImGui::PushFont(m_monoFont);
     auto draw_list = ImGui::GetWindowDrawList();
     draw_list->ChannelsSplit(2);
     draw_list->ChannelsSetCurrent(1);
@@ -164,11 +220,11 @@ void DevTools::logMessage(LogPtr* log) {
         if (level == 0) {
             ImGui::LabelText("", "");
         } else if (level == 1) {
-            ImGui::LabelText("", " " FEATHER_ALERT_TRIANGLE);
+            ImGui::LabelText("", U8(" " FEATHER_ALERT_TRIANGLE));
         } else if (level == 2) {
-            ImGui::LabelText("", " " FEATHER_ALERT_OCTAGON);
+            ImGui::LabelText("", U8(" " FEATHER_ALERT_OCTAGON));
         }
-        auto& msgs = log->getData();
+        auto msgs = log->getData();
         if (!msgs.size()) {
             ImGui::SameLine();
             this->generateModInfo(log->getSender());
@@ -210,7 +266,7 @@ void DevTools::logMessage(LogPtr* log) {
     draw_list->ChannelsMerge();
     ImGui::PopFont();
     if (ImGui::IsMouseHoveringRect(min, max) && ImGui::BeginPopupContextWindow()) {
-        if (ImGui::MenuItem(FEATHER_TRASH_2 " Delete")) {
+        if (ImGui::MenuItem(U8(FEATHER_TRASH_2 " Delete"))) {
             Loader::get()->popLog(log);
         }
         ImGui::EndPopup();
@@ -241,17 +297,17 @@ void DevTools::generateTab<"Console"_h>() {
             this->logMessage(log);
         }
     }
-    if (this->m_lastLogCount != Loader::get()->getLogs().size()) {
+    if (m_lastLogCount != Loader::get()->getLogs().size()) {
         ImGui::SetScrollHereY(1.0f);
-        this->m_lastLogCount = Loader::get()->getLogs().size();
+        m_lastLogCount = Loader::get()->getLogs().size();
     }
     ImGui::EndChild();
 
     ImGui::Separator();
     static char command_buf[255] = { 0 };
-    if (this->m_commandSuccess) {
+    if (m_commandSuccess) {
         memset(command_buf, 0, sizeof command_buf);
-        this->m_commandSuccess = false;
+        m_commandSuccess = false;
     }
     ImGui::SetCursorPosX(10);
     ImGui::SetNextItemWidth(ImGui::GetWindowWidth() - 95);
@@ -263,7 +319,7 @@ void DevTools::generateTab<"Console"_h>() {
         ImGui::SetKeyboardFocusHere();
     }
     ImGui::SameLine(ImGui::GetWindowWidth() - 70);
-    if (ImGui::Button(FEATHER_PLAY " Run")) {
+    if (ImGui::Button(U8(FEATHER_PLAY " Run"))) {
         this->executeConsoleCommand(command_buf);
     }
 }
@@ -278,14 +334,14 @@ void DevTools::generateTab<"Mods"_h>() {
 
 template<>
 void DevTools::generateTab<"Class Data"_h>() {
-    if (!this->m_selectedNode) {
+    if (!m_selectedNode) {
         return ImGui::TextWrapped("Select a Node to Edit in the Scene or Tree");
     }
-    ImGui::PushFont(this->m_monoFont);
-    ImGui::TextWrapped("Address: 0x%p", this->m_selectedNode);
+    ImGui::PushFont(m_monoFont);
+    ImGui::TextWrapped("Address: 0x%p", m_selectedNode);
     ImGui::SameLine();
-    if (ImGui::Button(FEATHER_COPY " Copy")) {
-        clipboard::write(CCString::createWithFormat("%p", this->m_selectedNode)->getCString());
+    if (ImGui::Button(U8(FEATHER_COPY " Copy"))) {
+        clipboard::write(CCString::createWithFormat("%p", m_selectedNode)->getCString());
     }
    
     static int s_read_count_buf = 0xec;
@@ -303,7 +359,7 @@ void DevTools::generateTab<"Class Data"_h>() {
     }
    
     auto& rtti = GDRTTI::get();
-    auto  info = rtti.read_rtti(this->m_selectedNode);
+    auto  info = rtti.read_rtti(m_selectedNode);
     if (info.size()) {
         auto base = info[0];
         info.erase(info.begin());
@@ -319,25 +375,25 @@ void DevTools::generateTab<"Class Data"_h>() {
                 while (indent.back() <= 0) {
                     indent.pop_back();
                 }
-                ImGui::PushFont(this->m_boxFont);
+                ImGui::PushFont(m_boxFont);
                 std::string is = " ";
                 for (auto ix = 0u; ix < indent.size() - 1; ix++) {
                     if (indent[ix] > 1) {
-                        is += u8"\u2502 ";
+                        is += U8(u8"\u2502 ");
                     } else {
-                        is += u8"  ";
+                        is += U8(u8"  ");
                     }
                 }
                 if (indent.back() < r.get_bases() + 1) {
-                    is += u8"\u2514\u2500";
+                    is += U8(u8"\u2514\u2500");
                 } else {
-                    is += u8"\u251C\u2500";
+                    is += U8(u8"\u251C\u2500");
                 }
                 ImGui::TextWrapped(is.c_str());
                 ImGui::SameLine();
                 ImGui::PopFont();
                 ImGui::TextWrapped(
-                    u8"[0x%x] %s",
+                    U8("[0x%x] %s"),
                     r.get_offset(),
                     r.get_name().c_str()
                 );
@@ -352,11 +408,11 @@ void DevTools::generateTab<"Class Data"_h>() {
             ImGui::PopStyleVar();
         }
     } else {
-        ImGui::TextWrapped(FEATHER_ALERT_TRIANGLE " No RTTI Found");
+        ImGui::TextWrapped(U8(FEATHER_ALERT_TRIANGLE " No RTTI Found"));
     }
     
     for (int i = 0; i < s_read_count; i += 4) {
-        auto addr = as<uintptr_t>(this->m_selectedNode) + i;
+        auto addr = as<uintptr_t>(m_selectedNode) + i;
         if (rtti.valid(addr)) {
             auto data = *as<uintptr_t*>(addr);
             ImGui::Text(
@@ -365,7 +421,7 @@ void DevTools::generateTab<"Class Data"_h>() {
             );
         } else {
             ImGui::Text(
-                "+ %x : " FEATHER_ALERT_OCTAGON " <Unreadable Address>", i
+                U8("+ %x : " FEATHER_ALERT_OCTAGON " <Unreadable Address>"), i
             );
         }
     }
@@ -376,21 +432,23 @@ void DevTools::generateTab<"Class Data"_h>() {
 template<>
 void DevTools::generateTab<"Settings"_h>() {
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0.f, 0.f });
-    ImGui::Checkbox("GD in Window",             &this->m_GDInWindow);
-    ImGui::Checkbox("Attributes in Node Tree",  &this->m_attributesInTree);
-    ImGui::Checkbox("Weird XML Node Tree",      &this->m_oddHtmlStyleSetting);
+    ImGui::Checkbox("GD in Window",             &m_GDInWindow);
+    ImGui::Checkbox("Attributes in Node Tree",  &m_attributesInTree);
+    ImGui::Checkbox("Weird XML Node Tree",      &m_oddHtmlStyleSetting);
     ImGui::Checkbox("Dock With Shift",          &ImGui::GetIO().ConfigDockingWithShift);
     ImGui::PopStyleVar();
 
     ImGui::Separator();
 
-    static int selected_theme = static_cast<int>(this->m_theme);
+    static int selected_theme = static_cast<int>(m_theme);
     ImGui::PushItemWidth((ImGui::GetWindowWidth() - 10.f) / 2);
     if (ImGui::Combo("##dev.theme", &selected_theme,
-        FEATHER_SUN      " Light Theme\0"
-        FEATHER_UMBRELLA " Dark Theme\0"
+        U8(
+            FEATHER_SUN      " Light Theme\0"
+            FEATHER_UMBRELLA " Dark Theme\0"
+        )
     )) {
-        this->m_theme = static_cast<DevToolsTheme>(selected_theme);
+        m_theme = static_cast<DevToolsTheme>(selected_theme);
         this->reloadStyle();
     }
 
@@ -404,72 +462,72 @@ void DevTools::generateTab<"Settings"_h>() {
 
 template<>
 void DevTools::generateTab<"Attributes"_h>() {
-    if (!this->m_selectedNode) {
+    if (!m_selectedNode) {
         return ImGui::TextWrapped("Select a Node to Edit in the Scene or Tree");
     }
     if (ImGui::Button("Deselect")) {
         return this->selectNode(nullptr);
     }
-    ImGui::Text("Address: 0x%p", this->m_selectedNode);
+    ImGui::Text("Address: 0x%p", m_selectedNode);
     ImGui::SameLine();
-    if (ImGui::Button(FEATHER_COPY " Copy")) {
-        clipboard::write(CCString::createWithFormat("%X", as<uintptr_t>(this->m_selectedNode))->getCString());
+    if (ImGui::Button(U8(FEATHER_COPY " Copy"))) {
+        clipboard::write(CCString::createWithFormat("%X", as<uintptr_t>(m_selectedNode))->getCString());
     }
-    if (this->m_selectedNode->getUserData()) {
-        ImGui::Text("User data: 0x%p", this->m_selectedNode->getUserData());
+    if (m_selectedNode->getUserData()) {
+        ImGui::Text("User data: 0x%p", m_selectedNode->getUserData());
     }
 
     float pos[2] = {
-        this->m_selectedNode->getPositionX(),
-        this->m_selectedNode->getPositionY()
+        m_selectedNode->getPositionX(),
+        m_selectedNode->getPositionY()
     };
     ImGui::DragFloat2("Position", pos);
-    this->m_selectedNode->setPosition(pos[0], pos[1]);
+    m_selectedNode->setPosition(pos[0], pos[1]);
 
-    float scale[3] = { this->m_selectedNode->getScale(), this->m_selectedNode->getScaleX(), this->m_selectedNode->getScaleY() };
+    float scale[3] = { m_selectedNode->getScale(), m_selectedNode->getScaleX(), m_selectedNode->getScaleY() };
     ImGui::DragFloat3("Scale", scale, 0.025f);
-    if (this->m_selectedNode->getScale() != scale[0]) {
-        this->m_selectedNode->setScale(scale[0]);
+    if (m_selectedNode->getScale() != scale[0]) {
+        m_selectedNode->setScale(scale[0]);
     } else {
-        this->m_selectedNode->setScaleX(scale[1]);
-        this->m_selectedNode->setScaleY(scale[2]);
+        m_selectedNode->setScaleX(scale[1]);
+        m_selectedNode->setScaleY(scale[2]);
     }
 
-    float rot[3] = { this->m_selectedNode->getRotation(), this->m_selectedNode->getRotationX(), this->m_selectedNode->getRotationY() };
+    float rot[3] = { m_selectedNode->getRotation(), m_selectedNode->getRotationX(), m_selectedNode->getRotationY() };
     ImGui::DragFloat3("Rotation", rot);
-    if (this->m_selectedNode->getRotation() != rot[0]) {
-        this->m_selectedNode->setRotation(rot[0]);
+    if (m_selectedNode->getRotation() != rot[0]) {
+        m_selectedNode->setRotation(rot[0]);
     } else {
-        this->m_selectedNode->setRotationX(rot[1]);
-        this->m_selectedNode->setRotationY(rot[2]);
+        m_selectedNode->setRotationX(rot[1]);
+        m_selectedNode->setRotationY(rot[2]);
     }
 
-    float _skew[2] = { this->m_selectedNode->getSkewX(), this->m_selectedNode->getSkewY() };
+    float _skew[2] = { m_selectedNode->getSkewX(), m_selectedNode->getSkewY() };
     ImGui::DragFloat2("Skew", _skew);
-    this->m_selectedNode->setSkewX(_skew[0]);
-    this->m_selectedNode->setSkewY(_skew[1]);
+    m_selectedNode->setSkewX(_skew[0]);
+    m_selectedNode->setSkewY(_skew[1]);
 
-    auto anchor = this->m_selectedNode->getAnchorPoint();
+    auto anchor = m_selectedNode->getAnchorPoint();
     ImGui::DragFloat2("Anchor Point", &anchor.x, 0.05f, 0.f, 1.f);
-    this->m_selectedNode->setAnchorPoint(anchor);
+    m_selectedNode->setAnchorPoint(anchor);
 
-    auto contentSize = this->m_selectedNode->getContentSize();
+    auto contentSize = m_selectedNode->getContentSize();
     ImGui::DragFloat2("Content Size", &contentSize.width);
-    if (contentSize != this->m_selectedNode->getContentSize())
-        this->m_selectedNode->setContentSize(contentSize);
+    if (contentSize != m_selectedNode->getContentSize())
+        m_selectedNode->setContentSize(contentSize);
 
-    int zOrder = this->m_selectedNode->getZOrder();
+    int zOrder = m_selectedNode->getZOrder();
     ImGui::InputInt("Z", &zOrder);
-    if (this->m_selectedNode->getZOrder() != zOrder)
-        this->m_selectedNode->setZOrder(zOrder);
+    if (m_selectedNode->getZOrder() != zOrder)
+        m_selectedNode->setZOrder(zOrder);
     
-    auto visible = this->m_selectedNode->isVisible();
+    auto visible = m_selectedNode->isVisible();
     ImGui::Checkbox("Visible", &visible);
-    if (visible != this->m_selectedNode->isVisible())
-        this->m_selectedNode->setVisible(visible);
+    if (visible != m_selectedNode->isVisible())
+        m_selectedNode->setVisible(visible);
 
-    if (dynamic_cast<CCRGBAProtocol*>(this->m_selectedNode) != nullptr) {
-        auto rgbaNode = dynamic_cast<CCRGBAProtocol*>(this->m_selectedNode);
+    if (dynamic_cast<CCRGBAProtocol*>(m_selectedNode) != nullptr) {
+        auto rgbaNode = dynamic_cast<CCRGBAProtocol*>(m_selectedNode);
         auto color = rgbaNode->getColor();
         float _color[4] = { color.r / 255.f, color.g / 255.f, color.b / 255.f, rgbaNode->getOpacity() / 255.f };
         ImGui::ColorEdit4("Color", _color);
@@ -480,8 +538,8 @@ void DevTools::generateTab<"Attributes"_h>() {
         });
         rgbaNode->setOpacity(static_cast<GLubyte>(_color[3] * 255));
     }
-    if (dynamic_cast<CCLabelProtocol*>(this->m_selectedNode) != nullptr) {
-        auto labelNode = dynamic_cast<CCLabelProtocol*>(this->m_selectedNode);
+    if (dynamic_cast<CCLabelProtocol*>(m_selectedNode) != nullptr) {
+        auto labelNode = dynamic_cast<CCLabelProtocol*>(m_selectedNode);
         auto labelStr = labelNode->getString();
         char text[256];
         strcpy_s(text, labelStr);
@@ -494,11 +552,11 @@ void DevTools::generateTab<"Attributes"_h>() {
 
 template<>
 void DevTools::generateTab<"Layout"_h>() {
-    if (!this->m_selectedNode) {
+    if (!m_selectedNode) {
         return ImGui::TextWrapped("Select a Node to Edit in the Scene or Tree");
     }
     std::vector<CCNode*> parents;
-    this->recurseGetParents(parents, this->m_selectedNode);
+    this->recurseGetParents(parents, m_selectedNode);
     if (ImGui::BeginTable("dev.node.layout", 4)) {
         CCPoint accumulatedPos  = CCPointZero;
         float   accumulatedRot  = 0.f;
@@ -512,7 +570,7 @@ void DevTools::generateTab<"Layout"_h>() {
             this->hoverableNodeName(node);
             ImGui::TableNextColumn();
             if (node->getPosition() != CCPointZero) {
-                ImGui::PushStyleColor(ImGuiCol_Text, *this->m_colorWarning);
+                ImGui::PushStyleColor(ImGuiCol_Text, *m_colorWarning);
             }
             ImGui::Text(
                 "%.2f, %.2f (+ %.2f, %.2f)",
@@ -524,7 +582,7 @@ void DevTools::generateTab<"Layout"_h>() {
             ImGui::PopStyleColor(node->getPosition() != CCPointZero);
             ImGui::TableNextColumn();
             if (node->getRotation() != 0.f) {
-                ImGui::PushStyleColor(ImGuiCol_Text, *this->m_colorWarning);
+                ImGui::PushStyleColor(ImGuiCol_Text, *m_colorWarning);
             }
             ImGui::Text(
                 "%.2f° (+ %.2f°)",
@@ -534,7 +592,7 @@ void DevTools::generateTab<"Layout"_h>() {
             ImGui::PopStyleColor(node->getRotation() != 0.f);
             ImGui::TableNextColumn();
             if (node->getScale() != 1.f) {
-                ImGui::PushStyleColor(ImGuiCol_Text, *this->m_colorWarning);
+                ImGui::PushStyleColor(ImGuiCol_Text, *m_colorWarning);
             }
             ImGui::Text(
                 "%.2fx (* %.2fx)",
@@ -548,16 +606,16 @@ void DevTools::generateTab<"Layout"_h>() {
 }
 
 void DevTools::generateTabs() {
-    if (!ImGui::DockBuilderGetNode(this->m_dockSpaceID)) {
-        // this->m_dockSpaceID = ImGui::GetID("dev.dockspace");
-        // ImGui::DockBuilderRemoveNode(this->m_dockSpaceID);
-        // ImGui::DockBuilderAddNode(this->m_dockSpaceID,
+    if (!ImGui::DockBuilderGetNode(m_dockSpaceID)) {
+        // m_dockSpaceID = ImGui::GetID("dev.dockspace");
+        // ImGui::DockBuilderRemoveNode(m_dockSpaceID);
+        // ImGui::DockBuilderAddNode(m_dockSpaceID,
         //     ImGuiDockNodeFlags_DockSpace | ImGuiDockNodeFlags_PassthruCentralNode
         // );
     }
 
     #define MAKE_TAB(_icon_, _name_)            \
-        if (ImGui::Begin(_icon_ " " _name_)) {  \
+        if (ImGui::Begin(U8(_icon_ " " _name_))) {  \
             this->generateTab<_name_##_h>();    \
         }                                       \
         ImGui::End();                           \

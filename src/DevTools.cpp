@@ -64,16 +64,16 @@ void DevTools::initFonts() {
         io.Fonts->Build();
     };
 
-    add_font(&m_defaultFont, Font_OpenSans,          18.f, def_ranges);
-    add_font(&m_smallFont,   Font_OpenSans,          10.f, def_ranges);
-    add_font(&m_monoFont,    Font_RobotoMono,        18.f, def_ranges);
-    add_font(&m_boxFont,     Font_SourceCodeProLight,23.f, box_ranges);
+    add_font(&m_defaultFont, Font_OpenSans,           18.f, def_ranges);
+    add_font(&m_smallFont,   Font_OpenSans,           10.f, def_ranges);
+    add_font(&m_monoFont,    Font_RobotoMono,         18.f, def_ranges);
+    add_font(&m_boxFont,     Font_SourceCodeProLight, 23.f, box_ranges);
 }
 
 DevTools::DevTools() {
-    m_colorYes       = new ImVec4;
-    m_colorNo        = new ImVec4;
-    m_colorWarning   = new ImVec4;
+    m_colorYes     = new ImVec4;
+    m_colorNo      = new ImVec4;
+    m_colorWarning = new ImVec4;
     // m_addresses      = new AddressManager;
 }
 
@@ -90,9 +90,9 @@ DevTools* DevTools::get() {
 }
 
 class AccessSpecifiersAreForNerds : public CCTransitionScene {
-    public:
-        CCScene* getIn()  { return m_pInScene; }
-        CCScene* getOut() { return m_pOutScene; }
+public:
+    CCScene* getIn()  { return m_pInScene; }
+    CCScene* getOut() { return m_pOutScene; }
 };
 
 void DevTools::selectNode(CCNode* node) {

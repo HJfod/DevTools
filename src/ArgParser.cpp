@@ -6,10 +6,10 @@ bool ParsedArgs::hasFlag(arg_name_type const& name) const {
 
 arg_value_type ParsedArgs::getFlagValue(
     arg_name_type const& name,
-    arg_value_type const& default
+    arg_value_type const& def
 ) const {
     if (!this->m_flags.count(name)) {
-        return default;
+        return def;
     }
     return this->m_flags.at(name);
 }
@@ -22,11 +22,11 @@ bool ParsedArgs::hasArg(size_t index) const {
     return index < this->m_args.size();
 }
 
-arg_value_type ParsedArgs::at(size_t index, arg_value_type const& default) const {
+arg_value_type ParsedArgs::at(size_t index, arg_value_type const& def) const {
     if (index < this->m_args.size()) {
         return this->m_args[index];
     }
-    return default;
+    return def;
 }
 
 std::vector<arg_name_type> ParsedArgs::getArgs() const {
@@ -38,7 +38,7 @@ Result<ParsedArgs> ArgParser::parse(std::string const& msg_raw) {
         return Err<>("String is empty");
     }
     auto msg = msg_raw + " ";
-    auto& args = ParsedArgs();
+    auto args = ParsedArgs();
     std::string collect = "";
     std::string flag_name = "";
     char last_char = 0;
