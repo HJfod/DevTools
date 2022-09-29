@@ -15,7 +15,7 @@ arg_value_type ParsedArgs::getFlagValue(
 }
 
 std::vector<arg_name_type> ParsedArgs::getFlags() const {
-    return map_utils::getKeys(this->m_flags);
+    return map::getKeys(this->m_flags);
 }
 
 bool ParsedArgs::hasArg(size_t index) const {

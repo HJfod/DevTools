@@ -1,7 +1,7 @@
 {
-    "geode":        "v0.2.0",
+    "geode":        "v0.2.1",
 	"version":      "v0.0.4",
-	"id":           "com.hjfod.devtools",
+	"id":           "hjfod.devtools",
     "name":         "DevTools",
     "developer":    "HJfod",
     "description":  "Advanced Developer Tools",

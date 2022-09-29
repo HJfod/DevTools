@@ -151,9 +151,7 @@ void DevTools::generateModInfo(Mod* mod) {
     if (ImGui::TreeNode(mod, mod->getName().c_str())) {
         ImGui::TextWrapped("Name: %s",         mod->getName().c_str());
         ImGui::TextWrapped("ID: %s",           mod->getID().c_str());
-        ImGui::TextWrapped("Description: %s",  mod->getDescription().size() ?
-                                        mod->getDescription().c_str() :
-                                        "Not provided");
+        ImGui::TextWrapped("Description: %s",  mod->getDescription().value_or("Not provided").c_str());
         ImGui::TextWrapped("Developer: %s",    mod->getDeveloper().c_str());
 
         if (ImGui::TreeNode(CCString::createWithFormat("Hooks: %d", mod->getHooks().size())->getCString())) {
