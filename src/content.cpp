@@ -83,13 +83,110 @@ void DevTools::highlightNode(CCNode* node) {
     );
 }
 
+void DevTools::nodeAttributes(CCNode* node) {
+    if (ImGui::Button("Deselect")) {
+        return this->selectNode(nullptr);
+    }
+    ImGui::Text("Address: 0x%p", node);
+    ImGui::SameLine();
+    if (ImGui::Button(U8(FEATHER_COPY " Copy"))) {
+        clipboard::write(CCString::createWithFormat("%X", as<uintptr_t>(node))->getCString());
+    }
+    if (node->getUserData()) {
+        ImGui::Text("User data: 0x%p", node->getUserData());
+    }
+
+    float pos[2] = {
+        node->getPositionX(),
+        node->getPositionY()
+    };
+    ImGui::DragFloat2("Position", pos);
+    node->setPosition(pos[0], pos[1]);
+
+    float scale[3] = { node->getScale(), node->getScaleX(), node->getScaleY() };
+    ImGui::DragFloat3("Scale", scale, 0.025f);
+    if (node->getScale() != scale[0]) {
+        node->setScale(scale[0]);
+    } else {
+        node->setScaleX(scale[1]);
+        node->setScaleY(scale[2]);
+    }
+
+    float rot[3] = { node->getRotation(), node->getRotationX(), node->getRotationY() };
+    ImGui::DragFloat3("Rotation", rot);
+    if (node->getRotation() != rot[0]) {
+        node->setRotation(rot[0]);
+    } else {
+        node->setRotationX(rot[1]);
+        node->setRotationY(rot[2]);
+    }
+
+    float _skew[2] = { node->getSkewX(), node->getSkewY() };
+    ImGui::DragFloat2("Skew", _skew);
+    node->setSkewX(_skew[0]);
+    node->setSkewY(_skew[1]);
+
+    auto anchor = node->getAnchorPoint();
+    ImGui::DragFloat2("Anchor Point", &anchor.x, 0.05f, 0.f, 1.f);
+    node->setAnchorPoint(anchor);
+
+    auto contentSize = node->getContentSize();
+    ImGui::DragFloat2("Content Size", &contentSize.width);
+    if (contentSize != node->getContentSize())
+        node->setContentSize(contentSize);
+
+    int zOrder = node->getZOrder();
+    ImGui::InputInt("Z", &zOrder);
+    if (node->getZOrder() != zOrder)
+        node->setZOrder(zOrder);
+    
+    auto visible = node->isVisible();
+    ImGui::Checkbox("Visible", &visible);
+    if (visible != node->isVisible())
+        node->setVisible(visible);
+
+    if (dynamic_cast<CCRGBAProtocol*>(node) != nullptr) {
+        auto rgbaNode = dynamic_cast<CCRGBAProtocol*>(node);
+        auto color = rgbaNode->getColor();
+        float _color[4] = { color.r / 255.f, color.g / 255.f, color.b / 255.f, rgbaNode->getOpacity() / 255.f };
+        ImGui::ColorEdit4("Color", _color);
+        rgbaNode->setColor({
+            static_cast<GLubyte>(_color[0] * 255),
+            static_cast<GLubyte>(_color[1] * 255),
+            static_cast<GLubyte>(_color[2] * 255)
+        });
+        rgbaNode->setOpacity(static_cast<GLubyte>(_color[3] * 255));
+    }
+    if (dynamic_cast<CCLabelProtocol*>(node) != nullptr) {
+        auto labelNode = dynamic_cast<CCLabelProtocol*>(node);
+        auto labelStr = labelNode->getString();
+        char text[256];
+        strcpy_s(text, labelStr);
+        ImGui::InputText("Text", text, 256);
+        if (strcmp(text, labelStr)) {
+            labelNode->setString(text);
+        }
+    }
+}
+
 void DevTools::recurseUpdateList(CCNode* node, unsigned int i) {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
     if (m_selectedNode == node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
+    std::stringstream name;
+    name << "[" << i << "] " << getNodeName(node) << " ";
+    if (node->getTag() != -1) {
+        name << "(" << node->getTag() << ") ";
+    }
+    if (node->getID().size()) {
+        name << "\"" << node->getID() << "\" ";
+    }
+    if (node->getChildrenCount()) {
+        name << "{" << node->getChildrenCount() << "} ";
+    }
     if (ImGui::TreeNodeEx(
-        node, flags, "(%d) %s", i, getNodeName(node)
+        node, flags, name.str().c_str()
     )) {
         if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0)) {
             if (m_selectedNode == node) {
@@ -103,6 +200,9 @@ void DevTools::recurseUpdateList(CCNode* node, unsigned int i) {
             (ImGui::IsItemHovered() && ImGui::IsKeyDown(ImGuiKey_ModShift))
         ) {
             this->highlightNode(node);
+        }
+        if (m_attributesInTree && m_selectedNode == node) {
+            this->nodeAttributes(node);
         }
         CCARRAY_FOREACH_B_BASE(node->getChildren(), child, CCNode*, ix) {
             this->recurseUpdateList(dynamic_cast<CCNode*>(child), ix);
@@ -463,89 +563,7 @@ void DevTools::generateTab<"Attributes"_h>() {
     if (!m_selectedNode) {
         return ImGui::TextWrapped("Select a Node to Edit in the Scene or Tree");
     }
-    if (ImGui::Button("Deselect")) {
-        return this->selectNode(nullptr);
-    }
-    ImGui::Text("Address: 0x%p", m_selectedNode);
-    ImGui::SameLine();
-    if (ImGui::Button(U8(FEATHER_COPY " Copy"))) {
-        clipboard::write(CCString::createWithFormat("%X", as<uintptr_t>(m_selectedNode))->getCString());
-    }
-    if (m_selectedNode->getUserData()) {
-        ImGui::Text("User data: 0x%p", m_selectedNode->getUserData());
-    }
-
-    float pos[2] = {
-        m_selectedNode->getPositionX(),
-        m_selectedNode->getPositionY()
-    };
-    ImGui::DragFloat2("Position", pos);
-    m_selectedNode->setPosition(pos[0], pos[1]);
-
-    float scale[3] = { m_selectedNode->getScale(), m_selectedNode->getScaleX(), m_selectedNode->getScaleY() };
-    ImGui::DragFloat3("Scale", scale, 0.025f);
-    if (m_selectedNode->getScale() != scale[0]) {
-        m_selectedNode->setScale(scale[0]);
-    } else {
-        m_selectedNode->setScaleX(scale[1]);
-        m_selectedNode->setScaleY(scale[2]);
-    }
-
-    float rot[3] = { m_selectedNode->getRotation(), m_selectedNode->getRotationX(), m_selectedNode->getRotationY() };
-    ImGui::DragFloat3("Rotation", rot);
-    if (m_selectedNode->getRotation() != rot[0]) {
-        m_selectedNode->setRotation(rot[0]);
-    } else {
-        m_selectedNode->setRotationX(rot[1]);
-        m_selectedNode->setRotationY(rot[2]);
-    }
-
-    float _skew[2] = { m_selectedNode->getSkewX(), m_selectedNode->getSkewY() };
-    ImGui::DragFloat2("Skew", _skew);
-    m_selectedNode->setSkewX(_skew[0]);
-    m_selectedNode->setSkewY(_skew[1]);
-
-    auto anchor = m_selectedNode->getAnchorPoint();
-    ImGui::DragFloat2("Anchor Point", &anchor.x, 0.05f, 0.f, 1.f);
-    m_selectedNode->setAnchorPoint(anchor);
-
-    auto contentSize = m_selectedNode->getContentSize();
-    ImGui::DragFloat2("Content Size", &contentSize.width);
-    if (contentSize != m_selectedNode->getContentSize())
-        m_selectedNode->setContentSize(contentSize);
-
-    int zOrder = m_selectedNode->getZOrder();
-    ImGui::InputInt("Z", &zOrder);
-    if (m_selectedNode->getZOrder() != zOrder)
-        m_selectedNode->setZOrder(zOrder);
-    
-    auto visible = m_selectedNode->isVisible();
-    ImGui::Checkbox("Visible", &visible);
-    if (visible != m_selectedNode->isVisible())
-        m_selectedNode->setVisible(visible);
-
-    if (dynamic_cast<CCRGBAProtocol*>(m_selectedNode) != nullptr) {
-        auto rgbaNode = dynamic_cast<CCRGBAProtocol*>(m_selectedNode);
-        auto color = rgbaNode->getColor();
-        float _color[4] = { color.r / 255.f, color.g / 255.f, color.b / 255.f, rgbaNode->getOpacity() / 255.f };
-        ImGui::ColorEdit4("Color", _color);
-        rgbaNode->setColor({
-            static_cast<GLubyte>(_color[0] * 255),
-            static_cast<GLubyte>(_color[1] * 255),
-            static_cast<GLubyte>(_color[2] * 255)
-        });
-        rgbaNode->setOpacity(static_cast<GLubyte>(_color[3] * 255));
-    }
-    if (dynamic_cast<CCLabelProtocol*>(m_selectedNode) != nullptr) {
-        auto labelNode = dynamic_cast<CCLabelProtocol*>(m_selectedNode);
-        auto labelStr = labelNode->getString();
-        char text[256];
-        strcpy_s(text, labelStr);
-        ImGui::InputText("Text", text, 256);
-        if (strcmp(text, labelStr)) {
-            labelNode->setString(text);
-        }
-    }
+    this->nodeAttributes(m_selectedNode);
 }
 
 template<>

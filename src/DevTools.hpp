@@ -56,6 +56,7 @@ protected:
     void logMessage(LogPtr* msg);
     void generateModInfo(Mod* mod);
     void hoverableNodeName(CCNode* node);
+    void nodeAttributes(CCNode* node);
     void generateTree();
     void generateTabs();
     template<int TabID>
