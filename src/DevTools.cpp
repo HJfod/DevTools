@@ -213,9 +213,7 @@ void DevTools::executeConsoleCommand(std::string const& cmd) {
     auto parser = ArgParser().parse(cmd);
 
     if (!parser) {
-        Log::get()
-            << Severity::Error
-            << "Error Parsing Command: " << parser.error();
+        log::error("Error Parsing Command: ", parser.error());
         return;
     }
     
@@ -224,30 +222,24 @@ void DevTools::executeConsoleCommand(std::string const& cmd) {
     SWITCH_ARGS {
         HANDLER("goto") {
             if (!args.hasArg(1)) {
-                Mod::get()->logInfo(
-                    "Invalid Command: \"goto\" requires a second parameter of type SceneID",
-                    Severity::Error
-                );
+                log::error("Invalid Command: \"goto\" requires a second parameter of type SceneID");
             } else {
                 auto scene = createSceneByLayerName(
                     args.at(1), as<void*>(std::stoi(args.at(2, "0")))
                 );
                 if (scene) {
-                    Log::get() << "Moving to scene " << args.at(1);
+                    log::info("Moving to scene ", args.at(1));
                     CCDirector::sharedDirector()->replaceScene(CCTransitionFade::create(.5f, scene));
                     m_commandSuccess = true;
                 } else {
-                    Log::get() << Severity::Error <<
-                        "Invalid Command: \"" << args.at(1) << "\" is not a valid SceneID";
+                    log::error("Invalid Command: \"", args.at(1), "\" is not a valid SceneID");
                 }
             }
         }
     
         SWITCH_SUB("test") {
             HANDLER("warn") {
-                Log::get()
-                    << Severity::Warning
-                    << "Example warning";
+                log::warn("Example warning");
             }
 
             UNKNOWN_HANDLER();

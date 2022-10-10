@@ -52,14 +52,8 @@ public:
 #define UNKNOWN_HANDLER()                                   \
     DEFAULT_HANDLER {                                       \
         if (args.hasArg(arg_switch_level)) {                \
-            Log::get()                 \
-                << Severity::Error    \
-                << "Unknown Command: \""                    \
-                << args.at(arg_switch_level) << "\"";       \
+            log::error("Unknown Command: \"", args.at(arg_switch_level), "\"");\
         } else {                                            \
-            Log::get()                 \
-                << Severity::Error    \
-                << "\"" << args.at(arg_switch_level - 1) << "\""\
-                << " has not default handler";              \
+            log::error("\"", args.at(arg_switch_level - 1), "\" has no default handler");\
         }                                                   \
     }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "DevTools.hpp"
 #include <imgui_internal.h>
+#include "DevTools.hpp"
 #include "fonts/FeatherIcons.hpp"
 #include "RTTI/gdrtti.hpp"
 #include <Geode/utils/WackyGeodeMacros.hpp>
@@ -14,7 +14,7 @@ const char* getNodeName(CCObject* node) {
 #define CHECK_IS(var, newName, type) \
     type* newName = nullptr; if ((newName = dynamic_cast<type*>(var)))
 
-const char* hashlog(LogPtr* log) {
+const char* hashlog(log::Log* log) {
     return CCString::createWithFormat("##%p", log)->getCString();
 }
 
@@ -295,7 +295,7 @@ void DevTools::generateTree() {
     }
 }
 
-void DevTools::logMessage(LogPtr* log) {
+void DevTools::logMessage(log::Log* log) {
     ImU32 color = 0;
     int level = 0;
     if (log->getSeverity() == Severity::Warning) {
@@ -322,34 +322,10 @@ void DevTools::logMessage(LogPtr* log) {
         } else if (level == 2) {
             ImGui::LabelText("", U8(" " FEATHER_ALERT_OCTAGON));
         }
-        auto msgs = log->getData();
-        if (!msgs.size()) {
-            ImGui::SameLine();
-            this->generateModInfo(log->getSender());
-        } else {
-            for (auto const& msg : msgs) {
-                ImGui::SameLine();
-                auto ccobject = dynamic_cast<CCObjectMeta*>(msg);
-                if (ccobject) {
-                    auto node = dynamic_cast<CCNode*>(ccobject->m_obj);
-                    if (node) {
-                        this->recurseUpdateList(node);
-                    } else {
-                        ImGui::Text(ccobject->m_repr.c_str());
-                    }
-                } else {
-                    auto asmod = dynamic_cast<ModMeta*>(msg);
-                    if (asmod) {
-                        this->generateModInfo(asmod->m_mod);
-                    } else {
-                        ImGuiWindow* window = ImGui::GetCurrentWindow();
-                        ImGui::PushTextWrapPos(ImGui::GetWindowWidth() - 20.f);
-                        ImGui::TextWrapped(msg->m_repr.c_str());
-                        ImGui::PopTextWrapPos();
-                    }
-                }
-            }
-        }
+        ImGui::SameLine();
+        ImGui::PushTextWrapPos(ImGui::GetWindowWidth() - 20.f);
+        ImGui::TextWrapped(log->toString().c_str());
+        ImGui::PopTextWrapPos();
     }
     ImGui::EndGroup();
     draw_list->ChannelsSetCurrent(0);

@@ -1,6 +1,7 @@
 #include "../GLEW/glew.h"
 #include "DevTools.hpp"
 #include <windowsx.h>
+#include <Geode/Modify.hpp>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static bool g_renderInSwapBuffers = false;
@@ -219,7 +220,7 @@ class $modify(CCDirector) {
         }
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            Mod::get()->logInfo("Unable to Render to Framebuffer", Severity::Error);
+            log::error("Unable to Render to Framebuffer");
             s_free();
             CCDirector::drawScene();
             return;

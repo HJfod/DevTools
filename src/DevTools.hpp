@@ -53,7 +53,7 @@ protected:
     void recurseUpdateList(CCNode* parent, unsigned int = 0);
     void recurseUpdateListOdd(CCNode* parent, unsigned int = 0);
     void recurseGetParents(std::vector<CCNode*>& vec, CCNode* node);
-    void logMessage(LogPtr* msg);
+    void logMessage(log::Log* msg);
     void generateModInfo(Mod* mod);
     void hoverableNodeName(CCNode* node);
     void nodeAttributes(CCNode* node);

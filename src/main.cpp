@@ -1,5 +1,6 @@
 #include <Geode/Geode.hpp>
 #include "DevTools.hpp"
+#include <Geode/Modify.hpp>
 
 USE_GEODE_NAMESPACE();
 
@@ -13,8 +14,3 @@ class $modify(CCKeyboardDispatcher) {
         return CCKeyboardDispatcher::dispatchKeyboardMSG(key, down);
     }
 };
-
-GEODE_API bool GEODE_CALL geode_load(Mod* mod) {
-	Interface::get()->init(mod);
-    return true;
-}
